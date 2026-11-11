@@ -3,13 +3,13 @@
   const answer = document.getElementById("answer");
 
   btn1.addEventListener("click", function (e) {
+    answer.innerHTML = "Loading...";
     const targetUrl = "https://www.ncei.noaa.gov/cdo-web/api/v2/stations";
     const params = new URLSearchParams({
       key: "43e57cf2",
       url: targetUrl,
     });
 
-    answer.innerHTML = "Loading...";
     fetch("https://corsproxy.io/?" + params, {
       headers: {
         token: "SAUXnePztSKgSQLFdyAlZivCPUknxZzF",
