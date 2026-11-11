@@ -1,5 +1,6 @@
 (function () {
   const btn1 = document.getElementById("btn1");
+  const btn2 = document.getElementById("btn2");
   const answer = document.getElementById("answer");
 
   btn1.addEventListener("click", function (e) {
@@ -54,6 +55,77 @@
                 <td>${name}</td>
                 <td>${latitude}</td>
                 <td>${longitude}</td>
+              </tr>
+            `;
+          });
+
+          tableHTML += `
+              </tbody>
+            </table>
+          `;
+
+          answer.innerHTML = tableHTML;
+        } else {
+          const textError = await response.text();
+          throw new Error(`Błąd serwera ${response.status}: ${textError}`);
+        }
+      })
+      .catch((error) => {
+        answer.innerHTML =
+          "<p style='color: red;'>Wystąpił błąd podczas pobierania danych.</p>";
+        console.error(error.message);
+      });
+  });
+
+  btn2.addEventListener("click", function (e) {
+    answer.innerHTML = "Loading...";
+    const targetUrl = "https://www.ncei.noaa.gov/cdo-web/api/v2/locations";
+    const params = new URLSearchParams({
+      key: "43e57cf2",
+      url: targetUrl,
+    });
+
+    fetch("https://corsproxy.io/?" + params, {
+      headers: {
+        token: "SAUXnePztSKgSQLFdyAlZivCPUknxZzF",
+      },
+    })
+      .then(async (response) => {
+        if (response.ok) {
+          const json = await response.json();
+          console.log(json.results);
+
+          const locations = Array.isArray(json.results)
+            ? json.results
+            : [json.results];
+
+          if (locations.length === 0) {
+            answer.innerHTML = "<p>Brak wyników dla podanego zapytania.</p>";
+            return;
+          }
+
+          let tableHTML = `
+            <table class="styled-table">
+              <thead>
+                <tr>
+                  <th>Location ID</th>
+                  <th>Name</th>
+                  <th>Data coverage</th>
+                </tr>
+              </thead>
+              <tbody>
+          `;
+
+          locations.forEach((location) => {
+            const id = location?.id ?? "Brak danych";
+            const name = location?.name ?? "Brak danych";
+            const dc = location?.datacoverage ?? "Brak danych";
+
+            tableHTML += `
+              <tr>
+                <td>${id}</td>
+                <td>${name}</td>
+                <td>${dc}</td>
               </tr>
             `;
           });
