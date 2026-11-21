@@ -4,7 +4,42 @@
   const btn3 = document.getElementById("btn3");
   const btn4 = document.getElementById("btn4");
   const btn5 = document.getElementById("btn5");
+  const form = document.getElementById("form6");
+  const randomLocationBtn = document.getElementById("randomLocation");
   const answer = document.getElementById("answer");
+  const setid = document.getElementById("setid");
+  const locationid = document.getElementById("locationid");
+
+  function fillDatasetSelect() {
+    const targetUrl = "https://www.ncei.noaa.gov/cdo-web/api/v2/datasets";
+    const params = new URLSearchParams({
+      key: "43e57cf2",
+      url: targetUrl,
+    });
+
+    fetch("https://corsproxy.io/?" + params, {
+      headers: {
+        token: "SAUXnePztSKgSQLFdyAlZivCPUknxZzF",
+      },
+    })
+      .then(async (response) => {
+        if (response.ok) {
+          const json = await response.json();
+          const datasets = json.results || [];
+          datasets.forEach((dataset) => {
+            const option = document.createElement("option");
+            option.value = dataset.id;
+            option.textContent = dataset.id;
+            setid.appendChild(option);
+          });
+        }
+      })
+      .catch((error) => {
+        console.error("Błąd podczas pobierania zbiorów danych:", error);
+      });
+  }
+
+  document.addEventListener("DOMContentLoaded", fillDatasetSelect);
 
   async function stateByFIPS(fips) {
     const targetUrl =
@@ -403,12 +438,6 @@
   btn5.addEventListener("click", function (e) {
     answer.innerHTML = "Pobieranie danych klimatycznych...";
 
-    // const params = new URLSearchParams({
-    //   datasetid: "GHCND",
-    //   startdate: "1900-01-01",
-    //   enddate: "2030-01-01",
-    // });
-
     const targetUrl = `https://www.ncei.noaa.gov/cdo-web/api/v2/datasets`;
 
     const params2 = new URLSearchParams({
@@ -510,5 +539,131 @@
           "<p style='color: red;'>Wystąpił błąd podczas pobierania danych.</p>";
         console.error(error.message);
       });
+  });
+
+  randomLocationBtn.addEventListener("click", function (e) {
+    const randomLocationId = Math.floor(Math.random() * 38862) + 1;
+    const targetUrl = `https://www.ncei.noaa.gov/cdo-web/api/v2/locations?limit=1&offset=${randomLocationId}`;
+    const params = new URLSearchParams({
+      key: "43e57cf2",
+      url: targetUrl,
+    });
+
+    randomLocationBtn.disabled = true;
+
+    fetch("https://corsproxy.io/?" + params, {
+      headers: {
+        token: "SAUXnePztSKgSQLFdyAlZivCPUknxZzF",
+      },
+    })
+      .then(async (response) => {
+        if (response.ok) {
+          const json = await response.json();
+          console.log(json);
+          locationid.value = json.results[0].id;
+        } else {
+          throw new Error(`Błąd serwera ${response.status}`);
+        }
+      })
+      .catch((error) => {
+        console.error(error.message);
+      })
+      .finally(() => {
+        randomLocationBtn.disabled = false;
+      });
+  });
+
+  form.addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const datasetId = setid.value;
+    const locationId = locationid.value;
+    const dates = Array.from(document.getElementById("dates").options)
+      .filter((option) => option.selected)
+      .map((option) => option.value);
+
+    answer.innerHTML = "Pobieranie danych klimatycznych...";
+
+    try {
+      const jsonResults = await Promise.all(
+        dates.map(async (date) => {
+          const params = new URLSearchParams({
+            datasetid: datasetId,
+            locationid: locationId,
+            startdate: date,
+            enddate: date,
+          });
+
+          const targetUrl =
+            "https://www.ncei.noaa.gov/cdo-web/api/v2/data?" +
+            params.toString();
+
+          const params2 = new URLSearchParams({
+            key: "43e57cf2",
+            url: targetUrl,
+            limit: "100",
+          });
+
+          const response = await fetch("https://corsproxy.io/?" + params2, {
+            headers: {
+              token: "SAUXnePztSKgSQLFdyAlZivCPUknxZzF",
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(`Błąd serwera ${response.status}`);
+          }
+
+          const json = await response.json();
+          return json.results || [];
+        }),
+      );
+
+      const data = jsonResults.flat();
+      console.log(data);
+
+      if (data.length === 0) {
+        answer.innerHTML = "<p>Brak wyników dla podanych parametrów.</p>";
+        return;
+      }
+
+      let tableHTML = `
+        <table class="styled-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Datatype</th>
+              <th>Value</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      data.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      data.forEach((dataPoint) => {
+        const date = dataPoint?.date ? dataPoint.date : "Brak";
+        const datatype = dataPoint?.datatype ?? "Brak";
+        const value = dataPoint?.value ?? "Brak";
+
+        tableHTML += `
+          <tr>
+            <td>${date}</td>
+            <td>${datatype}</td>
+            <td>${value}</td>
+          </tr>
+        `;
+      });
+
+      tableHTML += `
+          </tbody>
+        </table>
+      `;
+
+      answer.innerHTML = tableHTML;
+    } catch (error) {
+      answer.innerHTML =
+        "<p style='color: red;'>Wystąpił błąd podczas pobierania danych.</p>";
+      console.error(error.message);
+    }
   });
 })();

@@ -28,6 +28,32 @@
     <div>
       <button id="btn5">Wykres zbiorów danych</button>
     </div>
+    <div style="margin-top: 20px">
+      <form id="form6">
+        <select id="setid" name="setid" required>
+          <option disabled selected value="">Wybierz zbiór danych...</option>
+        </select>
+        <input
+          id="locationid"
+          name="locationid"
+          type="text"
+          placeholder="Wpisz id lokalizacji..."
+          required
+        />
+        <button type="button" id="randomLocation" aria-label="Losuj">🎲</button>
+
+        <div style="display: flex; flex-direction: row; align-items: center">
+          <label for="dates">Wybierz daty (możesz wybrać wiele):</label>
+          <select id="dates" name="dates" multiple required>
+            <option value="2020-01-03">2020-01-03</option>
+            <option value="2020-01-01">2020-01-01</option>
+            <option value="2020-01-02">2020-01-02</option>
+          </select>
+        </div>
+
+        <input type="submit" value="Pobierz dane z wybranych dat" id="btn6" />
+      </form>
+    </div>
     <div id="answer"></div>
     <div style="width: 650px">
       <canvas id="decadeChart"></canvas>
