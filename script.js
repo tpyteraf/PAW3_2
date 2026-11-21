@@ -2,7 +2,36 @@
   const btn1 = document.getElementById("btn1");
   const btn2 = document.getElementById("btn2");
   const btn3 = document.getElementById("btn3");
+  const btn4 = document.getElementById("btn4");
   const answer = document.getElementById("answer");
+
+  async function stateByFIPS(fips) {
+    const targetUrl =
+      "https://www.ncei.noaa.gov/cdo-web/api/v2/locations/" + fips;
+    const params = new URLSearchParams({
+      key: "43e57cf2",
+      url: targetUrl,
+    });
+
+    return await fetch("https://corsproxy.io/?" + params, {
+      headers: {
+        token: "SAUXnePztSKgSQLFdyAlZivCPUknxZzF",
+      },
+    })
+      .then(async (response) => {
+        if (response.ok) {
+          const json = await response.json();
+          console.log("from stateByFips", json);
+          return json.name;
+        } else {
+          const textError = await response.text();
+          throw new Error(`Błąd serwera ${response.status}: ${textError}`);
+        }
+      })
+      .catch((error) => {
+        console.error(error.message);
+      });
+  }
 
   btn1.addEventListener("click", function (e) {
     answer.innerHTML = "Pobieranie stacji...";
@@ -208,6 +237,146 @@
                 <td>${station}</td>
                 <td>${datatype}</td>
                 <td>${value}</td>
+              </tr>
+            `;
+          });
+
+          tableHTML += `
+              </tbody>
+            </table>
+          `;
+
+          answer.innerHTML = tableHTML;
+        } else {
+          const textError = await response.text();
+          throw new Error(`Błąd serwera ${response.status}: ${textError}`);
+        }
+      })
+      .catch((error) => {
+        answer.innerHTML =
+          "<p style='color: red;'>Wystąpił błąd podczas pobierania danych.</p>";
+        console.error(error.message);
+      });
+  });
+
+  btn4.addEventListener("click", function (e) {
+    const STATE_TO_FIPS = {
+      AL: "01",
+      AK: "02",
+      AZ: "04",
+      AR: "05",
+      CA: "06",
+      CO: "08",
+      CT: "09",
+      DE: "10",
+      DC: "11",
+      FL: "12",
+      GA: "13",
+      HI: "15",
+      ID: "16",
+      IL: "17",
+      IN: "18",
+      IA: "19",
+      KS: "20",
+      KY: "21",
+      LA: "22",
+      ME: "23",
+      MD: "24",
+      MA: "25",
+      MI: "26",
+      MN: "27",
+      MS: "28",
+      MO: "29",
+      MT: "30",
+      NE: "31",
+      NV: "32",
+      NH: "33",
+      NJ: "34",
+      NM: "35",
+      NY: "36",
+      NC: "37",
+      ND: "38",
+      OH: "39",
+      OK: "40",
+      OR: "41",
+      PA: "42",
+      RI: "44",
+      SC: "45",
+      SD: "46",
+      TN: "47",
+      TX: "48",
+      UT: "49",
+      VT: "50",
+      VA: "51",
+      WA: "53",
+      WV: "54",
+      WI: "55",
+      WY: "56",
+    };
+    answer.innerHTML = "Pobieranie stacji...";
+    const inp1 = document.getElementById("inp1").value.trim();
+
+    if (!STATE_TO_FIPS.hasOwnProperty(inp1.toUpperCase())) {
+      answer.innerHTML =
+        "<p style='color: red;'>Niepoprawny kod stanu. Użyj dwuliterowego kodu stanu USA (np. CA, TX, NY).</p>";
+      return;
+    }
+
+    const params = new URLSearchParams({
+      locationid: `FIPS:${STATE_TO_FIPS[inp1.toUpperCase()]}`,
+      limit: "100",
+    });
+    const targetUrl =
+      "https://www.ncei.noaa.gov/cdo-web/api/v2/stations?" + params.toString();
+
+    const params2 = new URLSearchParams({
+      key: "43e57cf2",
+      url: targetUrl,
+    });
+
+    fetch("https://corsproxy.io/?" + params2.toString(), {
+      headers: {
+        token: "SAUXnePztSKgSQLFdyAlZivCPUknxZzF",
+      },
+    })
+      .then(async (response) => {
+        if (response.ok) {
+          const json = await response.json();
+          console.log(json.results);
+
+          const stations = Array.isArray(json.results)
+            ? json.results
+            : [json.results];
+
+          if (stations.length === 0) {
+            answer.innerHTML = "<p>Brak wyników dla podanego zapytania.</p>";
+            return;
+          }
+
+          let tableHTML = `
+            <table class="styled-table">
+              <thead>
+                <tr>
+                  <th>Station ID</th>
+                  <th>Name</th>
+                  <th>State</th>
+                </tr>
+              </thead>
+              <tbody>
+          `;
+
+          const state = await stateByFIPS(
+            "FIPS:" + STATE_TO_FIPS[inp1.toUpperCase()],
+          );
+          stations.forEach((station) => {
+            const id = station?.id ?? "Brak danych";
+            const name = station?.name ?? "Brak danych";
+
+            tableHTML += `
+              <tr>
+                <td>${id}</td>
+                <td>${name}</td>
+                <td>${state}</td>
               </tr>
             `;
           });
