@@ -3,6 +3,7 @@
   const btn2 = document.getElementById("btn2");
   const btn3 = document.getElementById("btn3");
   const btn4 = document.getElementById("btn4");
+  const btn5 = document.getElementById("btn5");
   const answer = document.getElementById("answer");
 
   async function stateByFIPS(fips) {
@@ -387,6 +388,118 @@
           `;
 
           answer.innerHTML = tableHTML;
+        } else {
+          const textError = await response.text();
+          throw new Error(`Błąd serwera ${response.status}: ${textError}`);
+        }
+      })
+      .catch((error) => {
+        answer.innerHTML =
+          "<p style='color: red;'>Wystąpił błąd podczas pobierania danych.</p>";
+        console.error(error.message);
+      });
+  });
+
+  btn5.addEventListener("click", function (e) {
+    answer.innerHTML = "Pobieranie danych klimatycznych...";
+
+    // const params = new URLSearchParams({
+    //   datasetid: "GHCND",
+    //   startdate: "1900-01-01",
+    //   enddate: "2030-01-01",
+    // });
+
+    const targetUrl = `https://www.ncei.noaa.gov/cdo-web/api/v2/datasets`;
+
+    const params2 = new URLSearchParams({
+      key: "43e57cf2",
+      url: targetUrl,
+      limit: "100",
+    });
+
+    fetch("https://corsproxy.io/?" + params2, {
+      headers: {
+        token: "SAUXnePztSKgSQLFdyAlZivCPUknxZzF",
+      },
+    })
+      .then(async (response) => {
+        if (response.ok) {
+          const json = await response.json();
+          const datasets = json.results || [];
+
+          if (datasets.length === 0) {
+            answer.innerHTML = "<p>Brak wyników dla podanych parametrów.</p>";
+            return;
+          }
+
+          let tableHTML = `
+            <table class="styled-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Mindate</th>
+                  <th>Maxdate</th>
+                </tr>
+              </thead>
+              <tbody>
+          `;
+
+          datasets.forEach((set) => {
+            const name = set?.name ?? "Brak";
+            const mindate = set?.mindate ?? "Brak";
+            const maxdate = set?.maxdate ?? "Brak";
+
+            tableHTML += `
+              <tr>
+                <td>${name}</td>
+                <td>${mindate}</td>
+                <td>${maxdate}</td>
+              </tr>
+            `;
+          });
+
+          tableHTML += `
+              </tbody>
+            </table>
+          `;
+
+          answer.innerHTML = tableHTML;
+
+          const countByDecade = {};
+          datasets.forEach((set) => {
+            const year = Number(set.mindate.slice(0, 4));
+            const decade = Math.floor(year / 10) * 10;
+            countByDecade[decade] = (countByDecade[decade] || 0) + 1;
+          });
+
+          const sortedDecades = Object.keys(countByDecade)
+            .map(Number)
+            .sort((a, b) => a - b);
+
+          new Chart(document.getElementById("decadeChart"), {
+            type: "bar",
+            data: {
+              labels: sortedDecades,
+              datasets: [
+                {
+                  label: "Liczba zbiorów danych według dekady",
+                  data: sortedDecades.map((decade) => countByDecade[decade]),
+                  backgroundColor: "rgba(75, 192, 192, 0.7)",
+                  borderColor: "rgba(75, 192, 192, 1)",
+                  borderWidth: 1,
+                },
+              ],
+            },
+            options: {
+              scales: {
+                y: {
+                  ticks: {
+                    stepSize: 1,
+                  },
+                },
+              },
+            },
+          });
         } else {
           const textError = await response.text();
           throw new Error(`Błąd serwera ${response.status}: ${textError}`);
